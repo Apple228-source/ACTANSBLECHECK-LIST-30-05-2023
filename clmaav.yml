@@ -1,0 +1,25 @@
+
+---
+- name: Install ClamAV on Ubuntu
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install ClamAV
+      apt:
+        name: clamav
+        state: present
+
+    - name: Install ClamAV daemon
+      apt:
+        name: clamav-daemon
+        state: present
+
+    - name: Install ClamAV freshclam
+      apt:
+        name: clamav-freshclam
+        state: present

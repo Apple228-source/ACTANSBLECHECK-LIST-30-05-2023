@@ -1,0 +1,87 @@
+---
+- name: Install SNMP packages
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+      changed_when: false
+
+    - name: Install SNMP packages
+      apt:
+        name: [snmp, snmpd, libsnmp-dev]
+        state: present
+
+    - name: Enable and start SNMP daemon
+      service:
+        name: snmpd
+        state: started
+        enabled: yes
+
+    - name: Check SNMP daemon status
+      command:
+        cmd: systemctl is-active snmpd
+      register: snmp_status
+
+    - name: Display SNMP daemon status
+      debug:
+        var: snmp_status.stdout
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+      changed_when: false
+
+    - name: Install NTP package
+      apt:
+        name: ntp
+        state: present
+
+    - name: Add NTP servers to configuration file
+      lineinfile:
+        path: /etc/ntp.conf
+        line: "{{ item }}"
+        insertafter: EOF
+      with_items:
+        - "server 123.176.37.249 prefer iburst"
+        - "server 123.176.40.175 prefer iburst"
+    - name: Update sshd_config using sed
+      command: sed -i 's/#ignorehosts yes/ignorehosts yes/g' /etc/ssh/sshd_config
+
+    - name: Update sshd_config using sed
+      command: sed -i 's/#ClientAliveInterval 0/ClientAliveInterval 5m/g' /etc/ssh/sshd_config
+
+    - name: Update sshd_config using sed
+      command: sed -i 's/#ClientAliveCountMax 3/ClientAliveCountMax 2/g' /etc/ssh/sshd_config
+
+    - name: Restart rsyslog and ssh services
+      shell: systemctl restart rsyslog && systemctl restart ssh
+
+    - name: Append sysctl settings to sysctl.conf
+      lineinfile:
+        path: /etc/sysctl.conf
+        line: "{{ item }}"
+      with_items:
+        - "net.ipv4.ip_forward = 0"
+        - "net.ipv4.conf.all.accept_redirects = 0"
+        - "net.ipv4.conf.default.accept_source_route = 0"
+        - "net.ipv4.conf.all.send_redirects = 0"
+        - "net.ipv4.tcp_syncookies = 1"
+        - "net.ipv4.icmp_ignore_bogus_error_responses = 1"
+        - "net.ipv4.icmp_echo_ignore_broadcasts = 1"
+
+    - name: Install ClamAV
+      apt:
+        name: clamav
+        state: present
+
+    - name: Install ClamAV daemon
+      apt:
+        name: clamav-daemon
+        state: present
+
+    - name: Install ClamAV freshclam
+      apt:
+        name: clamav-freshclam
+        state: present

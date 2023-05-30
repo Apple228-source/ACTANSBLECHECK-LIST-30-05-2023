@@ -1,0 +1,31 @@
+---
+- name: Install SNMP packages
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+      changed_when: false
+
+    - name: Install SNMP packages
+      apt:
+        name: [snmp, snmpd, libsnmp-dev]
+        state: present
+
+    - name: Enable and start SNMP daemon
+      service:
+        name: snmpd
+        state: started
+        enabled: yes
+
+    - name: Check SNMP daemon status
+      command:
+        cmd: systemctl is-active snmpd
+      register: snmp_status
+
+    - name: Display SNMP daemon status
+      debug:
+        var: snmp_status.stdout
+

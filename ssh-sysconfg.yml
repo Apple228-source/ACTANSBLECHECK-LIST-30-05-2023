@@ -1,0 +1,32 @@
+---
+- name: Configure SSH and sysctl settings
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Update sshd_config using sed
+      command: sed -i 's/#ignorehosts yes/ignorehosts yes/g' /etc/ssh/sshd_config
+
+    - name: Update sshd_config using sed
+      command: sed -i 's/#ClientAliveInterval 0/ClientAliveInterval 5m/g' /etc/ssh/sshd_config
+
+    - name: Update sshd_config using sed
+      command: sed -i 's/#ClientAliveCountMax 3/ClientAliveCountMax 2/g' /etc/ssh/sshd_config
+
+    - name: Restart rsyslog and ssh services
+      shell: systemctl restart rsyslog && systemctl restart ssh
+
+    - name: Append sysctl settings to sysctl.conf
+      lineinfile:
+        path: /etc/sysctl.conf
+        line: "{{ item }}"
+      with_items:
+        - "net.ipv4.ip_forward = 0"
+        - "net.ipv4.conf.all.accept_redirects = 0"
+        - "net.ipv4.conf.default.accept_source_route = 0"
+        - "net.ipv4.conf.all.send_redirects = 0"
+        - "net.ipv4.tcp_syncookies = 1"
+        - "net.ipv4.icmp_ignore_bogus_error_responses = 1"
+        - "net.ipv4.icmp_echo_ignore_broadcasts = 1"
+
+    
