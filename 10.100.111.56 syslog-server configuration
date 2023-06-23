@@ -1,0 +1,73 @@
+[root@localhost ~]# cat /etc/rsyslog.conf
+$ModLoad imuxsock.so
+$ModLoad imklog.so
+$ModLoad imudp.so
+#load the network stuff
+$UDPServerAddress 10.100.111.56
+$UDPServerRun 514
+$TCPServerAddress 10.100.111.56
+$TCPServerRun 514
+#reduce any duplicates
+$RepeatedMsgReduction on
+# The template that wil format the message as it is writen to the file
+# you can edit this line if you want to customize te message format
+$template TraditionalFormat,"%timegenerated% %HOSTNAME% %syslogtag%%msg:::drop-last-lf%\n"
+# Log anything (except mail) of level info or higher.
+# Don't log private authentication messages!
+#*.info;mail.none;authpriv.none;cron.none                /var/log/messages
+if \
+        $source == 'syslog' \
+        and \
+               $syslogseverity <= '6' \
+        and ( \
+                        $syslogfacility-text != 'mail' \
+                and \
+                        $syslogfacility-text != 'authpriv' \
+                and \
+                        $syslogfacility-text != 'cron' \
+        ) \
+then   /var/log/messages;TraditionalFormat
+#authpriv.* /var/log/secure;TraditionalFormat
+# The authpriv file has restricted access.
+#authpriv.*                                              /var/log/secure
+if \
+        $source == 'syslog' \
+                and \
+        $syslogfacility-text == 'authpriv' \
+then    /var/log/secure;TraditionalFormat
+# Log anything (except mail) of level info or higher.
+# Don't log private authentication messages!
+# mail.* /var/log/maillog;TraditionalFormat
+if \
+        $source == 'syslog' \
+                and \
+        $syslogfacility-text == 'mail' \
+then    /var/log/maillog;TraditionalFormat
+
+# Log cron stuff
+#cron.* /var/log/cron;TraditionalFormat
+if \
+        $source == 'syslog' \
+                and \
+        $syslogfacility-text == 'cron' \
+then    /var/log/cron;TraditionalFormat
+# Everybody gets emergency messages
+#*.emerg *
+if \
+        $source == 'syslog' \
+                and \
+        $syslogseverity-text == 'emerg' \
+then    *
+# this line creates a template that will store the messages for each host in a seperate file.
+# a new file will ben created daily because of the date in the filename.
+$template DailyPerHostLogs,"/home/syslog/%HOSTNAME%/%HOSTNAME%.%$YEAR%-%$MONTH%-%$DAY%.log"
+#$template DailyPerHostLogs,"/home/syslog/%fromhost-ip%/%fromhost-ip%.%$YEAR%-%$MONTH%-%$DAY%.log"
+*.* -?DailyPerHostLogs;TraditionalFormat
+
+################################################################################
+*.info;mail.none;authpriv.none;cron.none;*.emerg;audit.notice   ?TmplMsg
+*.*     ?TmplMsg
+
+*.* @172.23.26.85:514
+
+[root@localhost ~]#
